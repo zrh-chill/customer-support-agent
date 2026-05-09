@@ -7,13 +7,17 @@ from app.schemas.types import AgentDecision, FAQMatch, IntentCategory, RiskLevel
 
 try:
     from pydantic_ai import Agent
+    from pydantic_ai.models.openai import OpenAIChatModel
+    from pydantic_ai.providers.openai import OpenAIProvider
 except ImportError:  # pragma: no cover - optional runtime dependency
     Agent = None
+    OpenAIChatModel = None
+    OpenAIProvider = None
 
 
 INTENT_RULES: list[tuple[IntentCategory, tuple[str, ...]]] = [
     (IntentCategory.refund_request, ("退款", "refund", "chargeback")),
-    (IntentCategory.billing_issue, ("账单", "扣费", "付款", "发票", "invoice", "payment", "billing")),
+    (IntentCategory.billing_issue, ("账单", "扣费", "付款", "发票", "invoice", "payment", "billing", "套餐", "订阅", "续费")),
     (IntentCategory.account_issue, ("密码", "登录", "账号", "账户", "reset password", "account")),
     (IntentCategory.technical_problem, ("报错", "bug", "失败", "异常", "error", "technical", "无法使用")),
     (IntentCategory.human_support, ("人工", "客服", "转人工", "human", "agent")),
@@ -30,16 +34,21 @@ class AgentContext:
 
 
 class SupportAgentEngine:
-    def __init__(self, model_name: str, api_key: str | None = None) -> None:
+    def __init__(self, model_name: str, api_key: str | None = None, base_url: str | None = None) -> None:
         self.model_name = model_name
         self.api_key = api_key
+        self.base_url = base_url
         self._agent = self._build_agent()
 
     def _build_agent(self) -> Any | None:
         if Agent is None or not self.api_key:
             return None
+        model: str | OpenAIChatModel = self.model_name
+        if self.base_url and OpenAIChatModel is not None and OpenAIProvider is not None:
+            provider = OpenAIProvider(base_url=self.base_url, api_key=self.api_key)
+            model = OpenAIChatModel(self.model_name, provider=provider)
         return Agent(
-            self.model_name,
+            model,
             output_type=AgentDecision,
             system_prompt=(
                 "You are a SaaS customer support agent. "
@@ -79,13 +88,16 @@ class SupportAgentEngine:
     ) -> AgentDecision:
         intent = self._detect_intent(message)
         lower_message = message.lower()
+        wants_subscription_help = any(keyword in message for keyword in ("套餐", "订阅", "续费")) or any(
+            keyword in lower_message for keyword in ("subscription", "plan", "renew")
+        )
         tool_calls: list[str] = []
         needs_tool = False
         needs_human = False
         risk = RiskLevel.low
         final_action = "reply_with_faq" if faq_match.matched else "reply"
 
-        if faq_match.matched:
+        if faq_match.matched and not wants_subscription_help:
             reply = faq_match.answer or "我已经找到了相关帮助文档。"
             return AgentDecision(
                 intent=intent if intent != IntentCategory.human_support else IntentCategory.general_faq,
@@ -131,7 +143,13 @@ class SupportAgentEngine:
             needs_tool = True
             tool_calls.extend(["get_user_orders", "get_subscription_status"])
             final_action = "reply_with_context"
-            if "发票" in message or "invoice" in lower_message:
+            if wants_subscription_help:
+                reply = (
+                    f"{context.user_name}，我可以结合你当前的订阅信息继续帮你处理。"
+                    "右侧面板会展示当前套餐与续费状态；如果你要升级或降级，一般可在控制台的“订阅与账单”中操作，"
+                    "并在下个计费周期生效。"
+                )
+            elif "发票" in message or "invoice" in lower_message:
                 reply = "我已经定位到你的账单上下文。你可以在账单中心选择对应订单申请发票。"
             else:
                 reply = "我已经检查到你的订单和订阅状态，稍后会在右侧面板展示相关账单上下文供客服跟进。"

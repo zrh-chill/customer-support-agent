@@ -26,7 +26,11 @@ from app.services.tool_service import ToolService
 class SupportService:
     def __init__(self, faq_service: FAQService):
         self.faq_service = faq_service
-        self.agent_engine = SupportAgentEngine(settings.llm_model, settings.openai_api_key)
+        self.agent_engine = SupportAgentEngine(
+            settings.llm_model,
+            settings.openai_api_key,
+            settings.openai_base_url,
+        )
 
     def _repo(self) -> SupportRepository:
         conn = get_connection()
