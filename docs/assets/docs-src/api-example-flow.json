@@ -1,0 +1,45 @@
+{
+  "template_type": "sequence",
+  "style": 1,
+  "width": 1180,
+  "height": 820,
+  "title": "API Example Flow",
+  "subtitle": "Representative request flow across session creation, message handling, ticket handoff, and feedback",
+  "containers": [
+    { "x": 40, "y": 110, "width": 1080, "height": 660, "label": "HTTP FLOW", "stroke": "#dbe5f1", "fill": "none" }
+  ],
+  "nodes": [
+    { "id": "frontend", "kind": "terminal", "x": 66, "y": 152, "width": 180, "height": 86, "label": "React Admin", "type_label": "CLIENT", "fill": "#111827", "stroke": "#475569", "header_fill": "#1f2937" },
+    { "id": "api", "kind": "double_rect", "x": 316, "y": 158, "width": 194, "height": 74, "label": "FastAPI Router", "type_label": "HTTP", "fill": "#eff6ff", "stroke": "#93c5fd" },
+    { "id": "service", "kind": "double_rect", "x": 584, "y": 158, "width": 208, "height": 74, "label": "SupportService", "type_label": "ORCHESTRATION", "fill": "#faf5ff", "stroke": "#c4b5fd" },
+    { "id": "repo", "kind": "cylinder", "x": 884, "y": 148, "width": 184, "height": 94, "label": "SQLite + FAQ", "sublabel": "repo / seed / decisions", "fill": "#eff6ff", "stroke": "#93c5fd" },
+    { "id": "post1", "kind": "speech", "x": 88, "y": 334, "width": 150, "height": 48, "label": "POST /api/chat/sessions", "type_label": "CREATE", "fill": "#f0fdf4", "stroke": "#86efac", "flat": true },
+    { "id": "post2", "kind": "speech", "x": 70, "y": 418, "width": 170, "height": 48, "label": "POST /messages", "type_label": "SEND", "fill": "#f0fdf4", "stroke": "#86efac", "flat": true },
+    { "id": "post3", "kind": "speech", "x": 72, "y": 502, "width": 168, "height": 48, "label": "POST /tickets/{id}/handoff", "type_label": "HANDOFF", "fill": "#fff7ed", "stroke": "#fdba74", "flat": true },
+    { "id": "post4", "kind": "speech", "x": 74, "y": 586, "width": 164, "height": 48, "label": "POST /feedback", "type_label": "RATE", "fill": "#eff6ff", "stroke": "#93c5fd", "flat": true },
+    { "id": "ok", "kind": "speech", "x": 882, "y": 678, "width": 178, "height": 46, "label": "Unified payload: session / messages / context / decision / ticket", "type_label": "JSON", "fill": "#f0fdf4", "stroke": "#86efac", "flat": true }
+  ],
+  "arrows": [
+    { "source": "post1", "target": "api", "flow": "read", "source_port": "right", "target_port": "left", "route_points": [[238, 358], [316, 358], [316, 194]] },
+    { "source": "api", "target": "service", "flow": "control", "label": "create_or_get_session", "source_port": "right", "target_port": "left", "route_points": [[510, 194], [584, 194]] },
+    { "source": "service", "target": "repo", "flow": "data", "label": "users / conversations", "source_port": "right", "target_port": "left", "route_points": [[792, 194], [884, 194]] },
+    { "source": "post2", "target": "api", "flow": "read", "source_port": "right", "target_port": "left", "route_points": [[240, 442], [316, 442], [316, 194]] },
+    { "source": "api", "target": "service", "flow": "control", "label": "send_message", "source_port": "right", "target_port": "left", "route_points": [[510, 260], [584, 260]] },
+    { "source": "service", "target": "repo", "flow": "write", "label": "messages / decisions / tickets", "dashed": true, "source_port": "right", "target_port": "left", "route_points": [[792, 260], [884, 260]] },
+    { "source": "post3", "target": "api", "flow": "feedback", "source_port": "right", "target_port": "left", "route_points": [[240, 526], [316, 526], [316, 194]] },
+    { "source": "post4", "target": "api", "flow": "async", "source_port": "right", "target_port": "left", "route_points": [[238, 610], [316, 610], [316, 194]] },
+    { "source": "repo", "target": "ok", "flow": "read", "label": "response payload", "source_port": "bottom", "target_port": "top", "corridor_x": [972] },
+    { "source": "ok", "target": "frontend", "flow": "control", "label": "UI refresh", "source_port": "left", "target_port": "bottom", "route_points": [[882, 700], [234, 700], [234, 238], [156, 238]] }
+  ],
+  "legend": [
+    { "flow": "read", "label": "Client request / query" },
+    { "flow": "control", "label": "Route to service layer" },
+    { "flow": "data", "label": "Read context" },
+    { "flow": "write", "label": "Write messages / tickets / decisions" },
+    { "flow": "feedback", "label": "Human handoff" },
+    { "flow": "async", "label": "Feedback rating" }
+  ],
+  "legend_position": "bottom-left",
+  "legend_box": true,
+  "legend_y": 786
+}

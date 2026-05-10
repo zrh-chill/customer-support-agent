@@ -1,0 +1,48 @@
+{
+  "template_type": "flowchart",
+  "style": 1,
+  "width": 1100,
+  "height": 760,
+  "title": "Business Workflow",
+  "subtitle": "Customer support request lifecycle from inbound message to resolution or human handoff",
+  "containers": [
+    { "x": 40, "y": 110, "width": 1020, "height": 110, "label": "ENTRY", "stroke": "#dbe5f1", "fill": "none" },
+    { "x": 40, "y": 240, "width": 1020, "height": 180, "label": "ANALYSIS", "stroke": "#dbe5f1", "fill": "none" },
+    { "x": 40, "y": 440, "width": 1020, "height": 180, "label": "ACTION", "stroke": "#dbe5f1", "fill": "none" },
+    { "x": 40, "y": 640, "width": 1020, "height": 80, "label": "DELIVERY", "stroke": "#dbe5f1", "fill": "none" }
+  ],
+  "nodes": [
+    { "id": "user", "kind": "speech", "x": 84, "y": 136, "width": 156, "height": 58, "label": "User question", "type_label": "INPUT", "fill": "#eff6ff", "stroke": "#93c5fd", "flat": true },
+    { "id": "session", "kind": "rect", "x": 308, "y": 136, "width": 176, "height": 58, "label": "Create / link session", "type_label": "SESSION", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true },
+    { "id": "intent", "kind": "double_rect", "x": 144, "y": 300, "width": 188, "height": 70, "label": "Intent detection", "type_label": "AGENT", "fill": "#faf5ff", "stroke": "#c4b5fd" },
+    { "id": "faq", "kind": "document", "x": 414, "y": 300, "width": 176, "height": 70, "label": "FAQ lookup", "type_label": "KNOWLEDGE", "fill": "#f0fdf4", "stroke": "#86efac" },
+    { "id": "judge", "kind": "hexagon", "x": 700, "y": 294, "width": 170, "height": 80, "label": "Can answer directly?", "type_label": "DECISION", "fill": "#fff7ed", "stroke": "#fdba74" },
+    { "id": "tools", "kind": "rect", "x": 110, "y": 490, "width": 212, "height": 72, "label": "Query business tools", "type_label": "TOOLS", "fill": "#eff6ff", "stroke": "#93c5fd", "flat": true, "sublabel": "profile / orders / subscription" },
+    { "id": "guard", "kind": "double_rect", "x": 408, "y": 486, "width": 188, "height": 80, "label": "Risk guardrail", "type_label": "POLICY", "fill": "#fef2f2", "stroke": "#fca5a5" },
+    { "id": "ticket", "kind": "folder", "x": 704, "y": 492, "width": 188, "height": 72, "label": "Create / escalate ticket", "type_label": "TICKET", "fill": "#fff7ed", "stroke": "#fdba74" },
+    { "id": "reply", "kind": "speech", "x": 462, "y": 660, "width": 180, "height": 44, "label": "Reply + write log", "type_label": "OUTPUT", "fill": "#f0fdf4", "stroke": "#86efac", "flat": true }
+  ],
+  "arrows": [
+    { "source": "user", "target": "session", "flow": "read", "source_port": "right", "target_port": "left" },
+    { "source": "session", "target": "intent", "flow": "control", "source_port": "bottom", "target_port": "top", "corridor_x": [396] },
+    { "source": "intent", "target": "faq", "flow": "read", "source_port": "right", "target_port": "left" },
+    { "source": "faq", "target": "judge", "flow": "data", "source_port": "right", "target_port": "left" },
+    { "source": "judge", "target": "reply", "flow": "read", "label": "yes", "source_port": "bottom", "target_port": "top", "route_points": [[786, 382], [786, 624], [552, 624], [552, 660]] },
+    { "source": "judge", "target": "tools", "flow": "control", "label": "no", "source_port": "left", "target_port": "top", "route_points": [[700, 334], [216, 334], [216, 490]] },
+    { "source": "tools", "target": "guard", "flow": "data", "source_port": "right", "target_port": "left" },
+    { "source": "guard", "target": "ticket", "flow": "feedback", "label": "human / sensitive", "source_port": "right", "target_port": "left" },
+    { "source": "guard", "target": "reply", "flow": "write", "label": "resolvable", "source_port": "bottom", "target_port": "top", "corridor_x": [502] },
+    { "source": "ticket", "target": "reply", "flow": "async", "label": "status sync", "source_port": "bottom", "target_port": "right", "route_points": [[798, 624], [798, 682], [642, 682]] }
+  ],
+  "legend": [
+    { "flow": "read", "label": "Primary answer path" },
+    { "flow": "control", "label": "Branch control" },
+    { "flow": "data", "label": "Knowledge / context" },
+    { "flow": "write", "label": "Solved directly" },
+    { "flow": "feedback", "label": "High-risk escalation" },
+    { "flow": "async", "label": "Status sync" }
+  ],
+  "legend_position": "bottom-left",
+  "legend_box": true,
+  "legend_y": 722
+}

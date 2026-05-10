@@ -1,0 +1,39 @@
+{
+  "template_type": "er-diagram",
+  "style": 1,
+  "width": 1220,
+  "height": 860,
+  "title": "Database Schema",
+  "subtitle": "SQLite schema for support sessions, business context, tickets, and agent decisions",
+  "containers": [
+    { "x": 42, "y": 118, "width": 1136, "height": 700, "label": "DATA MODEL", "stroke": "#dbe5f1", "fill": "none" }
+  ],
+  "nodes": [
+    { "id": "users", "kind": "rect", "x": 70, "y": 160, "width": 220, "height": 132, "label": "users", "type_label": "id · name · email · company · plan · locale", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true, "sublabel": "created_at" },
+    { "id": "orders", "kind": "rect", "x": 354, "y": 154, "width": 240, "height": 144, "label": "orders", "type_label": "id · user_id · order_number · status · amount", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true, "sublabel": "currency · created_at" },
+    { "id": "subscriptions", "kind": "rect", "x": 668, "y": 154, "width": 238, "height": 144, "label": "subscriptions", "type_label": "id · user_id · plan_name · status", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true, "sublabel": "renewal_date" },
+    { "id": "tickets", "kind": "rect", "x": 950, "y": 160, "width": 204, "height": 132, "label": "tickets", "type_label": "id · user_email · category · priority · status", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true, "sublabel": "summary · conversation · created_at" },
+    { "id": "conversations", "kind": "double_rect", "x": 246, "y": 438, "width": 244, "height": 146, "label": "conversations", "type_label": "id · user_email · status · feedback", "fill": "#eff6ff", "stroke": "#93c5fd", "sublabel": "created_at · updated_at" },
+    { "id": "messages", "kind": "rect", "x": 562, "y": 444, "width": 232, "height": 138, "label": "messages", "type_label": "id · conversation_id · role · content", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true, "sublabel": "created_at" },
+    { "id": "decisions", "kind": "double_rect", "x": 848, "y": 426, "width": 282, "height": 174, "label": "agent_decisions", "type_label": "intent · confidence · faq_match · tool_calls", "fill": "#faf5ff", "stroke": "#c4b5fd", "sublabel": "needs_human · risk_level · final_action · ticket_id · created_at" }
+  ],
+  "arrows": [
+    { "source": "users", "target": "orders", "flow": "read", "label": "1:N", "source_port": "right", "target_port": "left" },
+    { "source": "users", "target": "subscriptions", "flow": "read", "label": "1:N", "source_port": "right", "target_port": "left" },
+    { "source": "users", "target": "conversations", "flow": "control", "label": "email", "source_port": "bottom", "target_port": "top", "route_points": [[180, 320], [180, 418], [368, 418], [368, 438]] },
+    { "source": "conversations", "target": "messages", "flow": "data", "label": "1:N", "source_port": "right", "target_port": "left" },
+    { "source": "conversations", "target": "decisions", "flow": "control", "label": "1:N", "source_port": "right", "target_port": "left", "route_points": [[490, 620], [848, 620], [848, 513]] },
+    { "source": "tickets", "target": "conversations", "flow": "feedback", "label": "user_email", "source_port": "bottom", "target_port": "top", "route_points": [[1052, 316], [1052, 374], [368, 374], [368, 438]] },
+    { "source": "tickets", "target": "decisions", "flow": "async", "label": "ticket_id", "source_port": "bottom", "target_port": "top", "route_points": [[1052, 340], [989, 340], [989, 426]] }
+  ],
+  "legend": [
+    { "flow": "read", "label": "Business context relation" },
+    { "flow": "control", "label": "Session / decision core" },
+    { "flow": "data", "label": "Message records" },
+    { "flow": "feedback", "label": "Ticket backtrace" },
+    { "flow": "async", "label": "Decision-ticket link" }
+  ],
+  "legend_position": "bottom-left",
+  "legend_box": true,
+  "legend_y": 826
+}

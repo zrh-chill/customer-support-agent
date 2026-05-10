@@ -1,0 +1,46 @@
+{
+  "template_type": "architecture",
+  "style": 1,
+  "width": 1280,
+  "height": 760,
+  "title": "Dashboard Preview",
+  "subtitle": "Three-panel admin workspace for conversations, chat handling, and support context",
+  "containers": [
+    { "x": 44, "y": 120, "width": 230, "height": 580, "label": "SESSIONS", "stroke": "#dbe5f1", "fill": "none" },
+    { "x": 294, "y": 120, "width": 486, "height": 580, "label": "CHAT WINDOW", "stroke": "#dbe5f1", "fill": "none" },
+    { "x": 800, "y": 120, "width": 436, "height": 580, "label": "CONTEXT + ACTIONS", "stroke": "#dbe5f1", "fill": "none" }
+  ],
+  "nodes": [
+    { "id": "left1", "kind": "rect", "x": 66, "y": 158, "width": 186, "height": 76, "label": "Alex Chen", "type_label": "active · billing_issue", "fill": "#eff6ff", "stroke": "#93c5fd", "flat": true, "sublabel": "last message: modify plan" },
+    { "id": "left2", "kind": "rect", "x": 66, "y": 254, "width": 186, "height": 76, "label": "Jordan Lee", "type_label": "needs_handoff", "fill": "#fff7ed", "stroke": "#fdba74", "flat": true, "sublabel": "refund request" },
+    { "id": "left3", "kind": "rect", "x": 66, "y": 350, "width": 186, "height": 76, "label": "Taylor Smith", "type_label": "resolved", "fill": "#f0fdf4", "stroke": "#86efac", "flat": true, "sublabel": "password reset" },
+    { "id": "centerHeader", "kind": "terminal", "x": 322, "y": 154, "width": 430, "height": 90, "label": "Conversation #1", "fill": "#111827", "stroke": "#475569", "header_fill": "#1f2937", "sublabel": "customer-support-agent · live session" },
+    { "id": "msg1", "kind": "speech", "x": 336, "y": 286, "width": 188, "height": 62, "label": "How can I change my plan?", "type_label": "USER", "fill": "#eff6ff", "stroke": "#93c5fd", "flat": true },
+    { "id": "msg2", "kind": "speech", "x": 538, "y": 366, "width": 196, "height": 78, "label": "I can use your current subscription info to help…", "type_label": "AGENT", "fill": "#f0fdf4", "stroke": "#86efac", "flat": true },
+    { "id": "composer", "kind": "rect", "x": 336, "y": 598, "width": 398, "height": 62, "label": "Ask about billing, login, invoices, refunds…", "type_label": "COMPOSER", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true },
+    { "id": "profile", "kind": "rect", "x": 830, "y": 158, "width": 176, "height": 86, "label": "User Profile", "type_label": "Alex Chen · Northwind Labs", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true, "sublabel": "Plan: Pro · locale: zh-CN" },
+    { "id": "subscription", "kind": "rect", "x": 1026, "y": 158, "width": 180, "height": 86, "label": "Subscription", "type_label": "Pro · active", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true, "sublabel": "renewal: 2026-05-14" },
+    { "id": "decision", "kind": "double_rect", "x": 830, "y": 282, "width": 376, "height": 112, "label": "Agent Decision", "type_label": "intent: billing_issue · risk: low", "fill": "#faf5ff", "stroke": "#c4b5fd", "sublabel": "tools: get_user_orders, get_subscription_status" },
+    { "id": "ticket", "kind": "folder", "x": 830, "y": 430, "width": 176, "height": 94, "label": "Ticket Status", "type_label": "no open ticket", "fill": "#fff7ed", "stroke": "#fdba74" },
+    { "id": "actions", "kind": "rect", "x": 1026, "y": 430, "width": 180, "height": 94, "label": "Actions", "type_label": "Human Takeover · Helpful · Needs Work", "fill": "#ffffff", "stroke": "#d1d5db", "flat": true, "sublabel": "feedback + escalation" }
+  ],
+  "arrows": [
+    { "source": "left1", "target": "centerHeader", "flow": "read", "source_port": "right", "target_port": "left" },
+    { "source": "centerHeader", "target": "decision", "flow": "control", "source_port": "right", "target_port": "left", "route_points": [[752, 198], [830, 198], [830, 338]] },
+    { "source": "decision", "target": "profile", "flow": "data", "source_port": "top", "target_port": "bottom", "corridor_x": [918] },
+    { "source": "decision", "target": "subscription", "flow": "write", "source_port": "top", "target_port": "bottom", "corridor_x": [1116] },
+    { "source": "decision", "target": "ticket", "flow": "feedback", "source_port": "bottom", "target_port": "top" },
+    { "source": "ticket", "target": "actions", "flow": "async", "source_port": "right", "target_port": "left" }
+  ],
+  "legend": [
+    { "flow": "read", "label": "Session selection" },
+    { "flow": "control", "label": "Message-driven decision" },
+    { "flow": "data", "label": "User context" },
+    { "flow": "write", "label": "Subscription context" },
+    { "flow": "feedback", "label": "Ticket status" },
+    { "flow": "async", "label": "Handoff / feedback actions" }
+  ],
+  "legend_position": "bottom-right",
+  "legend_box": true,
+  "legend_y": 736
+}
