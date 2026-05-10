@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,6 +14,9 @@ except ImportError:  # pragma: no cover - optional runtime dependency
     Agent = None
     OpenAIChatModel = None
     OpenAIProvider = None
+
+
+logger = logging.getLogger(__name__)
 
 
 INTENT_RULES: list[tuple[IntentCategory, tuple[str, ...]]] = [
@@ -63,6 +67,7 @@ class SupportAgentEngine:
         faq_match: FAQMatch,
         context: AgentContext,
     ) -> AgentDecision:
+        fallback_reason = "llm_unavailable"
         if self._agent is not None:
             prompt = (
                 f"User email: {context.user_email}\n"
@@ -76,8 +81,26 @@ class SupportAgentEngine:
             try:
                 result = await self._agent.run(prompt)
                 return result.output
-            except Exception:
-                pass
+            except Exception as exc:
+                fallback_reason = f"llm_error:{type(exc).__name__}"
+                logger.warning(
+                    "LLM decision failed, falling back to rule-based decision",
+                    extra={
+                        "user_email": context.user_email,
+                        "model_name": self.model_name,
+                        "fallback_reason": fallback_reason,
+                    },
+                    exc_info=exc,
+                )
+        else:
+            logger.info(
+                "LLM agent unavailable, falling back to rule-based decision",
+                extra={
+                    "user_email": context.user_email,
+                    "model_name": self.model_name,
+                    "fallback_reason": fallback_reason,
+                },
+            )
         return self._rule_based_decision(message=message, faq_match=faq_match, context=context)
 
     def _rule_based_decision(

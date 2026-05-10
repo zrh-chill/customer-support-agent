@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from time import perf_counter
+from typing import Any
+
 from fastapi import HTTPException
 
 from app.agent.engine import AgentContext, SupportAgentEngine
@@ -95,11 +99,32 @@ class SupportService:
             ticket = None
             tool_service = ToolService(repo)
             if "get_user_profile" in decision.tool_calls:
-                context.user = tool_service.get_user_profile(session.user_email)
+                context.user = self._run_tool_with_audit(
+                    repo=repo,
+                    session_id=session_id,
+                    tool_name="get_user_profile",
+                    tool_input={"user_email": session.user_email},
+                    func=tool_service.get_user_profile,
+                    *[session.user_email],
+                )
             if "get_user_orders" in decision.tool_calls:
-                context.orders = tool_service.get_user_orders(session.user_email)
+                context.orders = self._run_tool_with_audit(
+                    repo=repo,
+                    session_id=session_id,
+                    tool_name="get_user_orders",
+                    tool_input={"user_email": session.user_email},
+                    func=tool_service.get_user_orders,
+                    *[session.user_email],
+                )
             if "get_subscription_status" in decision.tool_calls:
-                context.subscription = tool_service.get_subscription_status(session.user_email)
+                context.subscription = self._run_tool_with_audit(
+                    repo=repo,
+                    session_id=session_id,
+                    tool_name="get_subscription_status",
+                    tool_input={"user_email": session.user_email},
+                    func=tool_service.get_subscription_status,
+                    *[session.user_email],
+                )
 
             repo.add_message(session_id, "assistant", decision.user_visible_reply)
             if decision.final_action == "create_ticket" or decision.needs_human:
@@ -111,7 +136,14 @@ class SupportService:
                     summary=message[:120],
                     conversation=self._conversation_text(conversation_messages),
                 )
-                created = tool_service.create_ticket(payload)
+                created = self._run_tool_with_audit(
+                    repo=repo,
+                    session_id=session_id,
+                    tool_name="create_ticket",
+                    tool_input=payload.model_dump(mode="json"),
+                    func=tool_service.create_ticket,
+                    *[payload],
+                )
                 ticket = repo.get_ticket(created.ticket_id)
                 decision.ticket_id = created.ticket_id
                 repo.update_session_status(session_id, SessionStatus.needs_handoff if decision.needs_human else SessionStatus.active)
@@ -184,3 +216,50 @@ class SupportService:
 
     def _conversation_text(self, messages) -> str:
         return "\n".join(f"{message.role}: {message.content}" for message in messages)
+
+    def _run_tool_with_audit(
+        self,
+        *args,
+        repo: SupportRepository,
+        session_id: int,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        func: Callable[..., Any],
+        **kwargs,
+    ) -> Any:
+        started_at = perf_counter()
+        try:
+            result = func(*args, **kwargs)
+            repo.save_tool_call_audit(
+                conversation_id=session_id,
+                tool_name=tool_name,
+                tool_input=tool_input,
+                tool_output=self._serialize_audit_value(result),
+                success=True,
+                duration_ms=round((perf_counter() - started_at) * 1000, 2),
+            )
+            return result
+        except Exception as exc:
+            repo.save_tool_call_audit(
+                conversation_id=session_id,
+                tool_name=tool_name,
+                tool_input=tool_input,
+                tool_output=None,
+                success=False,
+                error_message=str(exc),
+                duration_ms=round((perf_counter() - started_at) * 1000, 2),
+            )
+            raise
+
+    def _serialize_audit_value(self, value: Any) -> Any:
+        if value is None:
+            return None
+        if hasattr(value, "model_dump"):
+            return value.model_dump(mode="json")
+        if isinstance(value, list):
+            return [self._serialize_audit_value(item) for item in value]
+        if isinstance(value, tuple):
+            return [self._serialize_audit_value(item) for item in value]
+        if isinstance(value, dict):
+            return {key: self._serialize_audit_value(item) for key, item in value.items()}
+        return value

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.database import get_connection
+
 
 def test_create_and_list_sessions(client):
     create_response = client.post("/api/chat/sessions", json={"user_email": "taylor@example.com"})
@@ -41,6 +43,23 @@ def test_billing_message_calls_business_tools(client):
     assert "get_subscription_status" in payload["decision"]["tool_calls"]
     assert payload["context"]["orders"]
     assert payload["context"]["subscription"]["plan_name"]
+
+    conn = get_connection()
+    try:
+        audits = conn.execute(
+            "SELECT tool_name, success, tool_input, tool_output, duration_ms FROM tool_calls WHERE conversation_id = ? ORDER BY id ASC",
+            (session_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    assert len(audits) == 2
+    assert audits[0]["tool_name"] == "get_user_orders"
+    assert audits[0]["success"] == 1
+    assert audits[0]["tool_input"]
+    assert audits[0]["tool_output"]
+    assert audits[0]["duration_ms"] >= 0
+    assert audits[1]["tool_name"] == "get_subscription_status"
 
 
 def test_refund_request_creates_high_risk_ticket(client):

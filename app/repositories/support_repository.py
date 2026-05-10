@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import datetime, timezone
+from typing import Any
 
 from app.schemas.types import (
     AgentDecision,
@@ -228,6 +229,43 @@ class SupportRepository:
             (rating.value, utc_now(), session_id),
         )
         self.conn.commit()
+
+    def save_tool_call_audit(
+        self,
+        conversation_id: int,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        tool_output: Any,
+        success: bool,
+        duration_ms: float,
+        error_message: str | None = None,
+    ) -> None:
+        self.conn.execute(
+            """
+            INSERT INTO tool_calls (
+              conversation_id, tool_name, tool_input, tool_output,
+              success, error_message, duration_ms, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                conversation_id,
+                tool_name,
+                json.dumps(tool_input, ensure_ascii=False),
+                None if tool_output is None else json.dumps(tool_output, ensure_ascii=False),
+                int(success),
+                error_message,
+                duration_ms,
+                utc_now(),
+            ),
+        )
+        self.conn.commit()
+
+    def get_tool_call_audits(self, conversation_id: int) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            "SELECT * FROM tool_calls WHERE conversation_id = ? ORDER BY id ASC",
+            (conversation_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
 
     def _session_summary_from_row(
         self,

@@ -97,6 +97,19 @@ CREATE TABLE IF NOT EXISTS agent_decisions (
   FOREIGN KEY(conversation_id) REFERENCES conversations(id),
   FOREIGN KEY(ticket_id) REFERENCES tickets(id)
 );
+
+CREATE TABLE IF NOT EXISTS tool_calls (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  conversation_id INTEGER NOT NULL,
+  tool_name TEXT NOT NULL,
+  tool_input TEXT NOT NULL,
+  tool_output TEXT,
+  success INTEGER NOT NULL,
+  error_message TEXT,
+  duration_ms REAL NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(conversation_id) REFERENCES conversations(id)
+);
 """
 
 
